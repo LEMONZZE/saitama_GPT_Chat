@@ -3,6 +3,7 @@ import asyncio
 from typing import Dict, List
 from aiogram import Bot, Dispatcher, types
 from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram.filters import Command
 from openai import OpenAI
 
 # Переменные окружения
@@ -22,13 +23,15 @@ client = OpenAI(api_key=OPENAI_KEY)
 # История пользователя
 user_histories: Dict[int, List[Dict[str, str]]] = {}
 
-@dp.message(commands=["start"])
+# Хендлер команды /start
+@dp.message(Command("start"))
 async def start(message: types.Message):
     await message.reply(
         "Привет! Я ChatGPT-бот. Пиши сообщение, а я отвечу.\n/reset — сбросить историю."
     )
 
-@dp.message(commands=["reset"])
+# Хендлер команды /reset
+@dp.message(Command("reset"))
 async def reset(message: types.Message):
     if message.from_user is None:
         return
@@ -36,6 +39,7 @@ async def reset(message: types.Message):
     user_histories[user_id] = []
     await message.reply("История чата сброшена.")
 
+# Хендлер всех остальных сообщений
 @dp.message()
 async def handle_message(message: types.Message):
     if message.from_user is None or not message.text:
@@ -49,7 +53,7 @@ async def handle_message(message: types.Message):
     history.append({"role": "user", "content": user_text})
 
     try:
-        # type: ignore → игнорируем предупреждение Pylance
+        # type: ignore → игнорируем предупреждение Pylance о типах
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=history  # type: ignore
@@ -60,10 +64,13 @@ async def handle_message(message: types.Message):
 
     answer_text = str(answer or "Пустой ответ")
     history.append({"role": "assistant", "content": answer_text})
+
+    # Храним только последние 50 сообщений
     user_histories[user_id] = history[-50:]
 
     await message.reply(answer_text)
 
+# Запуск бота
 async def main():
     await dp.start_polling(bot)
 

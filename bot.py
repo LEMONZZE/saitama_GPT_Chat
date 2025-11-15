@@ -4,6 +4,7 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.fsm.storage.memory import MemoryStorage
 from openai import OpenAI
 
+# Получаем токены из окружения
 TG_TOKEN = os.getenv("TG_TOKEN")
 OPENAI_KEY = os.getenv("OPENAI_KEY")
 
@@ -14,13 +15,12 @@ bot = Bot(token=TG_TOKEN)
 dp = Dispatcher(storage=MemoryStorage())
 client = OpenAI(api_key=OPENAI_KEY)
 
+# Хранилище истории чата (до 50 сообщений)
 user_histories = {}
 
 @dp.message(commands=["start"])
 async def start(message: types.Message):
-    await message.reply(
-        "Привет! Я ChatGPT-бот. Пиши сообщение, а я отвечу.\n/reset — сбросить историю."
-    )
+    await message.reply("Привет! Я ChatGPT-бот. Пиши сообщение, а я отвечу.\n/reset — сбросить историю.")
 
 @dp.message(commands=["reset"])
 async def reset(message: types.Message):

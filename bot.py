@@ -4,24 +4,33 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.fsm.storage.memory import MemoryStorage
 from openai import OpenAI
 
-# Получаем токены из окружения
-TG_TOKEN = os.getenv("TG_TOKEN")
-OPENAI_KEY = os.getenv("OPENAI_KEY")
+# Получаем токены из переменных окружения Railway
+TG_TOKEN = os.environ.get("TG_TOKEN")
+OPENAI_KEY = os.environ.get("OPENAI_KEY")
 
 if not TG_TOKEN or not OPENAI_KEY:
-    raise ValueError("TG_TOKEN и OPENAI_KEY должны быть установлены!")
+    raise ValueError(
+        "TG_TOKEN и OPENAI_KEY должны быть установлены в переменных окружения Railway!"
+    )
 
+# Инициализация бота и диспетчера
 bot = Bot(token=TG_TOKEN)
 dp = Dispatcher(storage=MemoryStorage())
+
+# Инициализация клиента OpenAI
 client = OpenAI(api_key=OPENAI_KEY)
 
-# Хранилище истории чата (до 50 сообщений)
+# История чата (до 50 сообщений на пользователя)
 user_histories = {}
 
+# Команда /start
 @dp.message(commands=["start"])
 async def start(message: types.Message):
-    await message.reply("Привет! Я ChatGPT-бот. Пиши сообщение, а я отвечу.\n/reset — сбросить историю.")
+    await message.reply(
+        "Привет! Я ChatGPT-бот. Пиши сообщение, а я отвечу.\n/reset — сбросить историю."
+    )
 
+# Команда /reset
 @dp.message(commands=["reset"])
 async def reset(message: types.Message):
     if message.from_user is None:
@@ -30,6 +39,7 @@ async def reset(message: types.Message):
     user_histories[user_id] = []
     await message.reply("История чата сброшена.")
 
+# Обработка всех текстовых сообщений
 @dp.message()
 async def handle_message(message: types.Message):
     if message.from_user is None:
@@ -38,6 +48,7 @@ async def handle_message(message: types.Message):
     user_id = message.from_user.id
     user_text = message.text or ""
 
+    # Получаем историю или создаём
     history = user_histories.get(user_id, [])
     history.append({"role": "user", "content": user_text})
 
@@ -51,10 +62,11 @@ async def handle_message(message: types.Message):
         answer = f"Ошибка OpenAI API: {e}"
 
     history.append({"role": "assistant", "content": answer})
-    user_histories[user_id] = history[-50:]
+    user_histories[user_id] = history[-50:]  # последние 50 сообщений
 
     await message.reply(text=answer)
 
+# Запуск бота
 async def main():
     await dp.start_polling(bot)
 
